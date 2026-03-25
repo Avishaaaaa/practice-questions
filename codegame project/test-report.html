@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Code or Crash — Test Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&family=Exo+2:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#07090f; --panel:#0d1020; --panel2:#111628;
+  --border:#1a2040; --border2:#252d50;
+  --accent:#00e5ff; --accent2:#7b5cff;
+  --danger:#ff2d55; --warn:#ffb800; --ok:#00e676;
+  --text:#c8d4f0; --dim2:#5a6890;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Exo 2',sans-serif;min-height:100vh;padding:32px 16px;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 50% at 20% 10%,rgba(123,92,255,0.07),transparent 60%),radial-gradient(ellipse 60% 40% at 80% 80%,rgba(0,229,255,0.06),transparent 60%);pointer-events:none;z-index:0;}
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.025) 1px,transparent 1px);background-size:48px 48px;pointer-events:none;z-index:0;}
+.wrap{position:relative;z-index:1;max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:28px;}
+
+/* Header */
+.report-header{text-align:center;padding:20px 0;}
+.report-title{font-family:'Orbitron',monospace;font-size:clamp(1.6rem,4vw,2.6rem);font-weight:900;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:2px;}
+.report-sub{font-family:'Share Tech Mono',monospace;color:var(--dim2);font-size:0.75rem;letter-spacing:3px;margin-top:6px;}
+.report-meta{font-family:'Share Tech Mono',monospace;color:var(--dim2);font-size:0.68rem;margin-top:10px;}
+
+/* Summary bar */
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.s-card{background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:18px;text-align:center;position:relative;overflow:hidden;}
+.s-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.s-card.total::before{background:linear-gradient(90deg,var(--accent2),var(--accent));}
+.s-card.pass::before{background:var(--ok);}
+.s-card.fail::before{background:var(--danger);}
+.s-card.cov::before{background:var(--warn);}
+.s-val{font-family:'Orbitron',monospace;font-size:2rem;font-weight:700;}
+.s-card.total .s-val{color:var(--accent);}
+.s-card.pass .s-val{color:var(--ok);}
+.s-card.fail .s-val{color:var(--danger);}
+.s-card.cov  .s-val{color:var(--warn);}
+.s-lbl{font-family:'Share Tech Mono',monospace;font-size:0.62rem;color:var(--dim2);letter-spacing:2px;margin-top:5px;}
+
+/* Progress bar */
+.progress-wrap{background:var(--panel);border:1px solid var(--border2);border-radius:10px;padding:16px 20px;}
+.prog-label{display:flex;justify-content:space-between;font-family:'Share Tech Mono',monospace;font-size:0.68rem;color:var(--dim2);letter-spacing:2px;margin-bottom:10px;}
+.prog-track{height:12px;background:rgba(255,255,255,0.05);border-radius:6px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--ok),var(--accent));box-shadow:0 0 10px rgba(0,230,118,0.4);transition:width 1s ease;}
+
+/* Suite sections */
+.suite{background:var(--panel);border:1px solid var(--border2);border-radius:12px;overflow:hidden;}
+.suite-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--panel2);border-bottom:1px solid var(--border2);}
+.suite-name{font-family:'Share Tech Mono',monospace;font-size:0.8rem;letter-spacing:2px;color:var(--accent2);}
+.suite-badge{font-family:'Share Tech Mono',monospace;font-size:0.68rem;padding:3px 10px;border-radius:20px;letter-spacing:1px;}
+.badge-all-pass{background:rgba(0,230,118,0.15);color:var(--ok);border:1px solid rgba(0,230,118,0.3);}
+.badge-has-fail{background:rgba(255,45,85,0.15);color:var(--danger);border:1px solid rgba(255,45,85,0.3);}
+
+/* Test rows */
+.test-row{display:flex;align-items:flex-start;gap:12px;padding:11px 20px;border-bottom:1px solid rgba(255,255,255,0.03);transition:background 0.15s;}
+.test-row:last-child{border-bottom:none;}
+.test-row:hover{background:rgba(255,255,255,0.02);}
+.test-icon{flex-shrink:0;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.65rem;margin-top:1px;}
+.icon-pass{background:rgba(0,230,118,0.2);color:var(--ok);}
+.icon-fail{background:rgba(255,45,85,0.2);color:var(--danger);}
+.test-name{font-family:'Share Tech Mono',monospace;font-size:0.78rem;color:var(--text);flex:1;line-height:1.5;}
+.test-status{font-family:'Share Tech Mono',monospace;font-size:0.68rem;letter-spacing:1px;flex-shrink:0;}
+.status-pass{color:var(--ok);}
+.status-fail{color:var(--danger);}
+.test-error{font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--danger);margin-top:4px;padding:6px 10px;background:rgba(255,45,85,0.07);border-radius:4px;}
+
+/* Notes */
+.notes{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:20px 24px;}
+.notes-title{font-family:'Orbitron',monospace;font-size:0.9rem;color:var(--accent);margin-bottom:12px;letter-spacing:2px;}
+.note-item{font-size:0.85rem;color:var(--dim2);line-height:1.8;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+.note-item:last-child{border-bottom:none;}
+.note-item strong{color:var(--text);}
+
+@media(max-width:600px){.summary{grid-template-columns:repeat(2,1fr);}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="report-header">
+    <div class="report-title">TEST REPORT — CODE OR CRASH</div>
+    <div class="report-sub">// FRONTEND UNIT TEST RESULTS</div>
+    <div class="report-meta" id="meta"></div>
+  </div>
+
+  <div class="summary">
+    <div class="s-card total"><div class="s-val" id="totalVal">—</div><div class="s-lbl">Total Tests</div></div>
+    <div class="s-card pass"> <div class="s-val" id="passVal">—</div><div class="s-lbl">Passed</div></div>
+    <div class="s-card fail"> <div class="s-val" id="failVal">—</div><div class="s-lbl">Failed</div></div>
+    <div class="s-card cov">  <div class="s-val" id="covVal">—</div><div class="s-lbl">Pass Rate</div></div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="prog-label"><span>PASS RATE</span><span id="progPct">0%</span></div>
+    <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+  </div>
+
+  <div id="suitesContainer"></div>
+
+  <div class="notes">
+    <div class="notes-title">// TEST COVERAGE NOTES</div>
+    <div class="note-item"><strong>shuffle()</strong> — 6 tests covering length preservation, immutability, element integrity, randomness (probabilistic), edge cases (empty, single-element).</div>
+    <div class="note-item"><strong>calcScore()</strong> — 5 tests covering boundary values (0s, 20s), midpoint, monotonicity, and floor guarantee.</div>
+    <div class="note-item"><strong>getGrade()</strong> — 11 tests covering every grade boundary (A+, A, B, C, D, F), edge cases (0%, 100%), and CSS class mapping.</div>
+    <div class="note-item"><strong>calcAccuracy()</strong> — 6 tests covering full score, zero score, division-by-zero guard, and rounding behaviour (1/3, 2/3).</div>
+    <div class="note-item"><strong>shuffleOptions()</strong> — 6 tests verifying output length, index range, element preservation, bijection correctness.</div>
+    <div class="note-item"><strong>Data Integrity</strong> — 4 structural tests ensuring every question object has a topic string, exactly 4 options, a valid 0–3 answer index, and a non-empty explanation.</div>
+    <div class="note-item"><strong>What's NOT tested here</strong> — React component rendering, timer tick side effects, and animation class toggling require a DOM testing environment (e.g. Vitest + React Testing Library). Those are the natural next step.</div>
+  </div>
+
+</div>
+
+<script>
+const RAW = {"passed":38,"failed":0,"results":[{"name":"shuffle — returns same length","status":"PASS","error":null},{"name":"shuffle — does not mutate original array","status":"PASS","error":null},{"name":"shuffle — contains all original elements","status":"PASS","error":null},{"name":"shuffle — actually shuffles (probabilistic; runs 10x)","status":"PASS","error":null},{"name":"shuffle — works on empty array","status":"PASS","error":null},{"name":"shuffle — works on single-element array","status":"PASS","error":null},{"name":"calcScore — 20s left gives maximum score 200","status":"PASS","error":null},{"name":"calcScore — 0s left gives minimum score 100","status":"PASS","error":null},{"name":"calcScore — 10s left gives 150","status":"PASS","error":null},{"name":"calcScore — always at least 100","status":"PASS","error":null},{"name":"calcScore — score increases with more time","status":"PASS","error":null},{"name":"getGrade — 100% returns A+","status":"PASS","error":null},{"name":"getGrade — 90% returns A+","status":"PASS","error":null},{"name":"getGrade — 80% returns A","status":"PASS","error":null},{"name":"getGrade — 89% returns A","status":"PASS","error":null},{"name":"getGrade — 70% returns B","status":"PASS","error":null},{"name":"getGrade — 60% returns C","status":"PASS","error":null},{"name":"getGrade — 50% returns D","status":"PASS","error":null},{"name":"getGrade — 49% returns F","status":"PASS","error":null},{"name":"getGrade — 0% returns F","status":"PASS","error":null},{"name":"getGrade — A returns grade-A class","status":"PASS","error":null},{"name":"getGrade — F returns grade-F class","status":"PASS","error":null},{"name":"calcAccuracy — 15/15 is 100%","status":"PASS","error":null},{"name":"calcAccuracy — 0/15 is 0%","status":"PASS","error":null},{"name":"calcAccuracy — 0/0 returns 0 (no div by zero)","status":"PASS","error":null},{"name":"calcAccuracy — 7/10 is 70%","status":"PASS","error":null},{"name":"calcAccuracy — rounds correctly: 1/3 ~ 33%","status":"PASS","error":null},{"name":"calcAccuracy — rounds correctly: 2/3 ~ 67%","status":"PASS","error":null},{"name":"shuffleOptions — returns 4 shuffled options","status":"PASS","error":null},{"name":"shuffleOptions — returns 4 indices","status":"PASS","error":null},{"name":"shuffleOptions — indices are valid (0–3)","status":"PASS","error":null},{"name":"shuffleOptions — all original options present","status":"PASS","error":null},{"name":"shuffleOptions — indices contain each of 0,1,2,3 exactly once","status":"PASS","error":null},{"name":"shuffleOptions — opts[shuffledIndices[i]] === shuffledOpts[i]","status":"PASS","error":null},{"name":"Each question has a topic string","status":"PASS","error":null},{"name":"Each question has 4 options","status":"PASS","error":null},{"name":"Each question ans is 0–3","status":"PASS","error":null},{"name":"Each question has non-empty explain","status":"PASS","error":null}]};
+
+// Suite groupings
+const SUITES = [
+  { name: "SUITE 1 — shuffle()", prefix: "shuffle" },
+  { name: "SUITE 2 — calcScore()", prefix: "calcScore" },
+  { name: "SUITE 3 — getGrade()", prefix: "getGrade" },
+  { name: "SUITE 4 — calcAccuracy()", prefix: "calcAccuracy" },
+  { name: "SUITE 5 — shuffleOptions()", prefix: "shuffleOptions" },
+  { name: "SUITE 6 — Data Integrity", prefix: "Each" },
+];
+
+const total = RAW.results.length;
+const passed = RAW.passed;
+const failed = RAW.failed;
+const rate = Math.round((passed/total)*100);
+
+document.getElementById('totalVal').textContent = total;
+document.getElementById('passVal').textContent  = passed;
+document.getElementById('failVal').textContent  = failed;
+document.getElementById('covVal').textContent   = rate + '%';
+document.getElementById('progPct').textContent  = rate + '%';
+document.getElementById('meta').textContent     = '// Generated ' + new Date().toLocaleString();
+
+// Animate fill
+setTimeout(() => {
+  document.getElementById('progFill').style.width = rate + '%';
+}, 100);
+
+const container = document.getElementById('suitesContainer');
+container.style.display = 'flex';
+container.style.flexDirection = 'column';
+container.style.gap = '12px';
+
+SUITES.forEach(suite => {
+  const suiteTests = RAW.results.filter(r => r.name.startsWith(suite.prefix));
+  const allPass = suiteTests.every(r => r.status === 'PASS');
+
+  const el = document.createElement('div');
+  el.className = 'suite';
+
+  const header = document.createElement('div');
+  header.className = 'suite-header';
+  header.innerHTML = `
+    <span class="suite-name">${suite.name}</span>
+    <span class="suite-badge ${allPass ? 'badge-all-pass' : 'badge-has-fail'}">
+      ${suiteTests.filter(r=>r.status==='PASS').length}/${suiteTests.length} PASS
+    </span>
+  `;
+  el.appendChild(header);
+
+  suiteTests.forEach(t => {
+    const row = document.createElement('div');
+    row.className = 'test-row';
+    row.innerHTML = `
+      <div class="test-icon ${t.status==='PASS'?'icon-pass':'icon-fail'}">${t.status==='PASS'?'✓':'✗'}</div>
+      <div style="flex:1">
+        <div class="test-name">${t.name}</div>
+        ${t.error ? `<div class="test-error">${t.error}</div>` : ''}
+      </div>
+      <div class="test-status ${t.status==='PASS'?'status-pass':'status-fail'}">${t.status}</div>
+    `;
+    el.appendChild(row);
+  });
+
+  container.appendChild(el);
+});
+</script>
+</body>
+</html>
